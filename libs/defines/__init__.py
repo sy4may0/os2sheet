@@ -1,0 +1,34 @@
+from .linux_general_props import NMCLI_TARGET_PROPS
+from .linux_optional_props import \
+    RSYSLOG_CONF_FILE, \
+    RSYSLOG_CONF_D, \
+    SSHD_CONF_FILE, \
+    SSHD_CONF_D, \
+    LOGROTATE_CONF_FILE, \
+    LOGROTATE_CONF_D, \
+    CRON_CONF_D, \
+    USER_CRON_CONF_D, \
+    CHRONY_CONF_FILE, \
+    DNF_CONF_FILE, \
+    DNF_REPO_D, \
+    DNF_REPO_EXCLUSION, \
+    SUDOERS_CONF, \
+    SUDOERS_CONF_D
+
+__all__ = [
+    'NMCLI_TARGET_PROPS',
+    'RSYSLOG_CONF_FILE',
+    'RSYSLOG_CONF_D',
+    'SSHD_CONF_FILE',
+    'SSHD_CONF_D',
+    'LOGROTATE_CONF_FILE',
+    'LOGROTATE_CONF_D',
+    'CRON_CONF_D',
+    'USER_CRON_CONF_D',
+    'CHRONY_CONF_FILE',
+    'DNF_CONF_FILE',
+    'DNF_REPO_D',
+    'DNF_REPO_EXCLUSION',
+    'SUDOERS_CONF',
+    'SUDOERS_CONF_D'
+]
