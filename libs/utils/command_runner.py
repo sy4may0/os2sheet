@@ -26,6 +26,23 @@ class OS2SheetCommandRunnerException(Exception):
         stdout: str = None
     ):
         
+        """
+        Initializes the OS2SheetCommandRunnerException instance.
+
+        Args:
+            message (str): The error message.
+            host (str, optional): The hostname or IP address of the target server. Defaults to None.
+            user (str, optional): The username for SSH authentication. Defaults to None.
+            port (int, optional): The port for SSH connection. Defaults to None.
+            prompt_pattern (str, optional): The regex pattern for detecting the command prompt. Defaults to None.
+            password_prompt (str, optional): The regex pattern for detecting the password prompt. Defaults to None.
+            su_command (str, optional): The command to switch to the root user. Defaults to None.
+            exit_command (str, optional): The command to exit the shell. Defaults to None.
+            os_type (str, optional): The operating system type of the target server. Defaults to None.
+            encoding (str, optional): The encoding for command execution. Defaults to None.
+            command (str, optional): The command that caused the exception. Defaults to None.
+            stdout (str, optional): The stdout of the command that caused the exception. Defaults to None.
+        """
         super().__init__(message)
         self.host = host
         self.user = user
@@ -51,6 +68,26 @@ class CommandRunner():
         encoding: str = 'utf-8',
         os_type: str = OSTYPE_LINUX
     ):
+        """
+        Initializes the CommandRunner instance and establishes an SSH connection.
+    
+        Args:
+            host (str): The hostname or IP address of the target server.
+            user (str): The username for SSH authentication.
+            port (int, optional): The port for SSH connection. Defaults to 22.
+            password (str, optional): The password for SSH authentication. Defaults to None.
+            keyfile (str, optional): The path to the private key file for key-based authentication. Defaults to None.
+            su_command (str, optional): The command to switch to the root user. Defaults to 'su'.
+            prompt_pattern (str, optional): The regex pattern for detecting the command prompt. Defaults to r'\[.+\][\$,#] $'.
+            password_prompt (str, optional): The regex pattern for detecting the password prompt. Defaults to r'Password: $'.
+            exit_command (str, optional): The command to exit the shell. Defaults to 'exit'.
+            timeout (int, optional): The timeout for the SSH connection in seconds. Defaults to 60.
+            encoding (str, optional): The encoding for command execution. Defaults to 'utf-8'.
+            os_type (str, optional): The operating system type of the target server. Defaults to OSTYPE_LINUX.
+    
+        Raises:
+            paramiko.SSHException: If the SSH connection fails.
+        """
         self.status = CMD_RUNNER_UNLOGIN
         self.host = host
         self.user = user
