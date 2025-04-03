@@ -1,4 +1,4 @@
-from libs.utils import CommandRunner, remove_comment
+from libs.utils import CommandRunner
 from libs.defines import \
     RSYSLOG_CONF_FILE, RSYSLOG_CONF_D, \
     SSHD_CONF_FILE, SSHD_CONF_D, \
@@ -8,6 +8,8 @@ from libs.defines import \
     DNF_CONF_FILE, \
     DNF_REPO_D, DNF_REPO_EXCLUSION, \
     SUDOERS_CONF, SUDOERS_CONF_D
+from .gatherer_utils import \
+    remove_comment
 import re
 import configparser
 
@@ -218,4 +220,16 @@ def firewalld(runner: CommandRunner) -> dict[str, dict]:
 
     return result
 
+
+def sysconfig_grub(runner: CommandRunner) -> dict[str, str]:
+    result = {}
+    sysconfig_grub_config = runner.exec('cat /etc/sysconfig/grub')
+    print(sysconfig_grub_config)
+
+    for line in sysconfig_grub_config.splitlines():
+        if re.match(r'^[A-Z]+', line):
+            sep = line.split('=')
+            result[sep[0]] = sep[1]
+
+    return result
 

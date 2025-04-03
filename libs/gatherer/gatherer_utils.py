@@ -1,3 +1,5 @@
+import re
+
 def remove_comment(text: str, comment: str = '#'):
     result = []
     for l in text.splitlines():

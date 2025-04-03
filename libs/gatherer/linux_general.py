@@ -1,93 +1,103 @@
-from libs.utils import CommandRunner, remove_comment
+from libs.utils import CommandRunner
 from libs.defines import NMCLI_TARGET_PROPS
+from .gatherer_utils import remove_comment
 import re
 
 def selinux(runner: CommandRunner) -> dict[str, str]:
-    result = {}
-    selinux_config = runner.exec('cat /etc/selinux/config')
+    selinux_settings = {}
+    config_text = runner.exec('cat /etc/selinux/config')
 
-    for line in selinux_config.splitlines():
+    for line in config_text.splitlines():
         if line.startswith('SELINUX='):
-            result['SELINUX'] = line.split('=')[1]
-        if line.startswith('SELINUXTYPE='):
-            result['SELINUXTYPE'] = line.split('=')[1]
+            selinux_settings['SELINUX'] = line.split('=')[1].strip()
+        elif line.startswith('SELINUXTYPE='):
+            selinux_settings['SELINUXTYPE'] = line.split('=')[1].strip()
 
-    return result
+    return selinux_settings
 
-def sysconfig_grub(runner: CommandRunner) -> dict[str, str]:
-    result = {}
-    sysconfig_grub_config = runner.exec('cat /etc/sysconfig/grub')
-
-    for line in sysconfig_grub_config.splitlines():
-        if re.match(r'^[A-Z]+', line):
-            sep = line.split('=')
-            result[sep[0]] = sep[1]
-
-    return result
-
-def __read_nmcli_config(line):
-    result_prop = None
-    result_value = None
+def parse_nmcli_line(line: str) -> tuple[str, str]:
+    """Parses a line of nmcli output and returns a tuple of (property, value) or None if the line is not a valid property."""
     for prop in NMCLI_TARGET_PROPS:
-        if line.startswith(prop+':'):
-            result_prop = prop
-            result_value = ' '.join(line.split()[1:])
-            break
-    
-    return result_prop, result_value
+        if line.startswith(f"{prop}:"):
+            return prop, " ".join(line.split()[1:])
+    return (None, None)
 
 def nmcli(runner: CommandRunner) -> dict[str, dict]:
-    result = {}
-    nmcli_if_list = runner.exec('nmcli --colors no con show')
+    connections = {}
+    nmcli_output = runner.exec('nmcli -t --colors no con show')
 
-    for line in nmcli_if_list.splitlines():
-        if re.match(r'.+\s+(ethernet|vlan|bond)\s+', line):
-            conname = line.split()[0]
-        else:
-            continue
-        
-        result[conname] = {}
-        nmcli_config = runner.exec(f'nmcli --colors no con show {conname}')
+    for line in nmcli_output.splitlines():
+        if re.match(r'.+:(.+ethernet|vlan|bond|bridge):', line):
+            connection_name = line.split(':')[0]
+            connections[connection_name] = {}
 
-        for conf in nmcli_config.splitlines():
-            prop, value = __read_nmcli_config(conf)
-            if prop and value:
-                result[conname][prop] = value
+            connection_details = runner.exec(f'nmcli --colors no con show "{connection_name}"')
+            for detail in connection_details.splitlines():
+                prop, value = parse_nmcli_line(detail)
+                if prop and value:
+                    connections[connection_name][prop] = value
 
-    return result
+    return connections
+
+def __remove_lsblk_prefix(line: str) -> str:
+    if re.match(r'[`|]-', line):
+        return line[2:]
+    else:
+        return line
 
 def localdisk(runner: CommandRunner) -> dict[str, dict]:
-    result = {}
-    localdisk_config = runner.exec('lsblk -o NAME,UUID,SIZE,TYPE,MOUNTPOINT')
+    disks = {}
+    lsblk_output = runner.exec('lsblk -o NAME,UUID,SIZE,TYPE,MOUNTPOINT')
 
-    diskname = None
-    for line in localdisk_config.splitlines():
-        spl = line.split()
+    current_disk = None
+    current_part = None
+    for line in lsblk_output.splitlines():
+        columns = line.split()
 
-        if len(spl) > 2 and spl[2] == 'disk':
-            diskname = spl[0]
-            result[diskname] = {
-                'name': diskname,
-                'size': spl[1],
+        if len(columns) > 2 and columns[2] == 'disk':
+            current_disk = __remove_lsblk_prefix(columns[0])
+            disks[current_disk] = {
+                'name': current_disk,
+                'size': columns[1],
                 'partition': [],
             }
 
-        if not diskname:
+        if not current_disk:
             continue
 
-        if len(spl) > 3 and spl[3] == 'part':
-            name = re.findall('[a-z0-9A-Z]+', spl[0])[0]
-            partition = {
-                'name': name,
-                'uuid': spl[1],
-                'size': spl[2],
+        target_types = ['part']
+        if not len(columns) > 3:
+            continue
+        if columns[3] in target_types:
+            partition_name = __remove_lsblk_prefix(columns[0])
+            partition_info = {
+                'name': partition_name,
+                'uuid': columns[1],
+                'size': columns[2],
+                'type': columns[3],
+                'volumes': []
             }
-            if len(spl) > 4:
-                partition['mountpoint'] = spl[4]
+            if len(columns) > 4:
+                partition_info['mountpoint'] = columns[4]
 
-            result[diskname]['partition'].append(partition)
+            disks[current_disk]['partition'].append(partition_info)
+            current_part = partition_info
 
-    return result
+        target_lvm_types = ['lvm', 'lvm2', 'crypt']
+        if current_part and columns[3] in target_lvm_types:
+            volume_name = __remove_lsblk_prefix(columns[0])
+            volume_info = {
+                'name': volume_name,
+                'uuid': columns[1],
+                'size': columns[2],
+                'type': columns[3],
+            }
+            if len(columns) > 4:
+                volume_info['mountpoint'] = columns[4]
+            
+            current_part['volumes'].append(volume_info)
+
+    return disks
 
 def default_target(runner: CommandRunner) -> str:
     default_target_config = runner.exec('systemctl get-default')
