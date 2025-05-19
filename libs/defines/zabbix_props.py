@@ -1,0 +1,5 @@
+CONF_ZABBIX_SERVER_CONF = "/etc/zabbix/zabbix_server.conf"
+CONF_ZABBIX_SERVER_CONF_D = "/etc/zabbix/zabbix_server.conf.d"
+CONF_ZABBIX_AGENT_CONF = "/etc/zabbix/zabbix_agentd.conf"
+CONF_ZABBIX_AGENT_CONF_D = "/etc/zabbix/zabbix_agentd.conf.d"
+CONF_ZABBIX_WEB_CONF = "/etc/zabbix/web/zabbix.conf.php"
