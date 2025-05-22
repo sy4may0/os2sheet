@@ -175,4 +175,5 @@ cython_debug/
 
 test.xlsx
 test_env.sh
-
+os2sheet.code-workspace
+zabbix_g

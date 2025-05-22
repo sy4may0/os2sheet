@@ -192,6 +192,9 @@ class ParentContent(Content):
             return 1
 
         length_offset = 1
+        if all(isinstance(item, ValueContent) for item in self.items):
+            length_offset = 0
+
         return sum([item.length for item in self.items]) + length_offset
 
     def write(self, worksheet: Worksheet, ref_row: int) -> None:
@@ -230,8 +233,13 @@ class ParentContent(Content):
                 self.__indent
             )
             worksheet[f"{col}{row}"] = self.key
+            row_offset = 0
             if not (len(self.items) == 1 and isinstance(self.items[0], ValueContent)):
-                row += 1
+                row_offset = 1
+            if all(isinstance(item, ValueContent) for item in self.items):
+                row_offset = 0
+
+            row += row_offset
 
             for item in self.items:
                 item.write(worksheet, row)
